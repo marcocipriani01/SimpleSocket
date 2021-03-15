@@ -1,5 +1,7 @@
 package io.github.marcocipriani01.simplesocket;
 
+import android.util.Log;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.Socket;
@@ -71,10 +73,11 @@ public abstract class StringNetPort extends NetPort<String> {
         new Thread(() -> {
             try {
                 read(from, in);
-            } catch (IOException e) {
+            } catch (Exception e) {
+                Log.e(TAG, e.getMessage(), e);
                 onError(new ConnectionException("Reading error!", e, ConnectionException.Type.INPUT));
             }
-        }, "Reading thread").start();
+        }, from.toString() + " reader").start();
     }
 
     /**

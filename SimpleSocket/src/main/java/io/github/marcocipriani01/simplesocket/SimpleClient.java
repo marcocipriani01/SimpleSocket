@@ -68,37 +68,37 @@ public abstract class SimpleClient extends StringNetPort {
     @Override
     public void print(String msg) throws ConnectionException {
         ensureConnection();
-        new Thread(() -> out.println(msg), "Socket write").start();
+        handler.post(() -> out.print(msg));
     }
 
     @Override
     public void println(String msg) throws ConnectionException {
         ensureConnection();
-        new Thread(() -> out.println(msg), "Socket write").start();
+        handler.post(() -> out.println(msg));
     }
 
     @Override
     public void println(int msg) throws ConnectionException {
         ensureConnection();
-        new Thread(() -> out.println(msg), "Socket write").start();
+        handler.post(() -> out.println(msg));
     }
 
     @Override
     public void print(int msg) throws ConnectionException {
         ensureConnection();
-        new Thread(() -> out.print(msg), "Socket write").start();
+        handler.post(() -> out.print(msg));
     }
 
     @Override
     public void println(boolean msg) throws ConnectionException {
         ensureConnection();
-        new Thread(() -> out.println(msg), "Socket write").start();
+        handler.post(() -> out.println(msg));
     }
 
     @Override
     public void print(boolean msg) throws ConnectionException {
         ensureConnection();
-        new Thread(() -> out.print(msg), "Socket write").start();
+        handler.post(() -> out.print(msg));
     }
 
     /**

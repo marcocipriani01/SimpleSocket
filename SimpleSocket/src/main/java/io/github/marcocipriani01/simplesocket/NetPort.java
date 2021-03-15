@@ -2,6 +2,7 @@ package io.github.marcocipriani01.simplesocket;
 
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,15 +18,16 @@ import java.net.Socket;
  */
 public abstract class NetPort<MessageType> {
 
+    protected static final String TAG = "SimpleSocket";
     /**
      * Port.
      */
     protected final int port;
+    protected final HandlerThread thread = new HandlerThread("SimpleSocket thread");
     /**
      * Connection state.
      */
     protected volatile boolean connected = false;
-    protected final HandlerThread thread = new HandlerThread("SimpleSocket thread");
     protected Handler handler;
 
     /**
@@ -48,10 +50,11 @@ public abstract class NetPort<MessageType> {
         new Thread(() -> {
             try {
                 connect0();
-            } catch (IOException e) {
+            } catch (Exception e) {
+                Log.e(TAG, e.getMessage(), e);
                 onError(new ConnectionException("Cannot connect the socket!", e, ConnectionException.Type.CONNECTION));
             }
-        }, "Connection thread").start();
+        }, TAG + " connection").start();
     }
 
     /**
@@ -90,15 +93,15 @@ public abstract class NetPort<MessageType> {
      */
     public final void close() throws ConnectionException {
         ensureConnection();
-        Thread thread = new Thread(() -> {
+        handler.post(() -> {
             try {
                 close0();
                 connected = false;
-            } catch (IOException e) {
+            } catch (Exception e) {
+                Log.e(TAG, e.getMessage(), e);
                 onError(new ConnectionException("Cannot disconnect the socket!", e, ConnectionException.Type.UNABLE_TO_DISCONNECT));
             }
-        }, "NetPort connection thread");
-        thread.start();
+        });
     }
 
     /**
@@ -116,8 +119,7 @@ public abstract class NetPort<MessageType> {
     }
 
     protected final void ensureConnection() throws ConnectionException {
-        if (!connected) {
+        if (!connected)
             throw new ConnectionException("Not connected!", ConnectionException.Type.NOT_CONNECTED);
-        }
     }
 }
