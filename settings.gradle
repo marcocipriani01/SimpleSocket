@@ -1,2 +1,1 @@
-include ':SimpleSocket'
-rootProject.name = "SimpleSocket"
+include ':simplesocket'
