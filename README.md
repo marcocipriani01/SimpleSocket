@@ -1,5 +1,7 @@
 # SimpleSocket
 
+[![](https://jitpack.io/v/marcocipriani01/SimpleSocket.svg)](https://jitpack.io/#marcocipriani01/SimpleSocket)
+
 Super-simple Socket implementation for Android
 
 ## Simple client example
