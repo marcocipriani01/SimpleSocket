@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 Marco Cipriani (@marcocipriani01)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.github.marcocipriani01.simplesocket;
 
 import android.os.Handler;
@@ -13,17 +29,17 @@ import java.net.Socket;
  *
  * @param <MessageType> the message type.
  * @author marcocipriani01
- * @version 1.0
+ * @version 1.1
  * @see StringNetPort
  */
 public abstract class NetPort<MessageType> {
 
     protected static final String TAG = "SimpleSocket";
+    protected final HandlerThread thread = new HandlerThread("SimpleSocket thread");
     /**
      * Port.
      */
-    protected final int port;
-    protected final HandlerThread thread = new HandlerThread("SimpleSocket thread");
+    protected volatile int port = -1;
     /**
      * Connection state.
      */
@@ -32,35 +48,18 @@ public abstract class NetPort<MessageType> {
 
     /**
      * Class constructor. Initializes the port without attempting a connection.
-     *
-     * @param port the port.
      */
-    public NetPort(int port) {
-        this.port = port;
+    public NetPort() {
         thread.start();
         handler = new Handler(thread.getLooper());
     }
 
-    /**
-     * Starts the connection to the client/server.
-     */
-    public final void connect() throws ConnectionException {
+    public void terminate() {
         if (connected)
-            throw new ConnectionException("Already connected!", ConnectionException.Type.ALREADY_CONNECTED);
-        new Thread(() -> {
-            try {
-                connect0();
-            } catch (Exception e) {
-                Log.e(TAG, e.getMessage(), e);
-                onError(new ConnectionException("Cannot connect the socket!", e, ConnectionException.Type.CONNECTION));
-            }
-        }, TAG + " connection").start();
+            throw new IllegalStateException("Disconnect before terminating!");
+        thread.quitSafely();
+        handler = null;
     }
-
-    /**
-     * Starts the connection to the client / server.
-     */
-    protected abstract void connect0() throws IOException;
 
     protected abstract void onError(Exception e);
 
@@ -91,11 +90,11 @@ public abstract class NetPort<MessageType> {
     /**
      * Closes the connection.
      */
-    public final void close() throws ConnectionException {
+    public void disconnect() throws ConnectionException {
         ensureConnection();
         handler.post(() -> {
             try {
-                close0();
+                disconnect0();
                 connected = false;
             } catch (Exception e) {
                 Log.e(TAG, e.getMessage(), e);
@@ -107,14 +106,14 @@ public abstract class NetPort<MessageType> {
     /**
      * Closes the connection.
      */
-    protected abstract void close0() throws IOException;
+    protected abstract void disconnect0() throws IOException;
 
     /**
      * Returns the connection state of the current client.
      *
      * @return the connection state, connected or not.
      */
-    public final boolean isConnected() {
+    public boolean isConnected() {
         return connected;
     }
 

@@ -1,4 +1,22 @@
+/*
+ * Copyright 2021 Marco Cipriani (@marcocipriani01)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.github.marcocipriani01.simplesocket;
+
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -7,50 +25,56 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 /**
- * Client Socket for a local LAN marcocipriani01.simplesocket.Server Socket with event handling.
+ * Client Socket for a local LAN Server Socket with event handling.
  *
  * @author marcocipriani01
- * @version 1.0
+ * @version 1.1
  */
 public abstract class SimpleClient extends StringNetPort {
 
     /**
      * The server IP.
      */
-    private final String ip;
-    private Socket socket;
+    private volatile String address = null;
+    private volatile Socket socket;
     /**
      * Output.
      */
-    private PrintWriter out;
+    private volatile PrintWriter out;
 
     /**
      * Class constructor. Initializes the client without attempting a connection.
-     *
-     * @param address the IP address of your marcocipriani01.simplesocket.Server Socket.
-     * @param port    the port of your server.
      */
-    public SimpleClient(String address, int port) {
-        super(port);
-        ip = address;
+    public SimpleClient() {
+        super();
     }
 
     /**
-     * Starts the socket and the connection.
+     * Starts the connection to the client/server.
      */
-    @Override
-    protected void connect0() throws IOException {
-        socket = new Socket(ip, port);
-        out = new PrintWriter(socket.getOutputStream(), true);
-        startReading(socket, new BufferedReader(new InputStreamReader(socket.getInputStream())));
-        connected = true;
+    public void connect(String address, int port) throws ConnectionException {
+        this.port = port;
+        this.address = address;
+        if (connected)
+            throw new ConnectionException("Already connected!", ConnectionException.Type.ALREADY_CONNECTED);
+        handler.post(() -> {
+            try {
+                socket = new Socket(this.address, port);
+                out = new PrintWriter(socket.getOutputStream(), true);
+                startReading(socket, new BufferedReader(new InputStreamReader(socket.getInputStream())));
+                connected = true;
+            } catch (Exception e) {
+                Log.e(TAG, e.getMessage(), e);
+                onError(new ConnectionException("Cannot connect the client!", e, ConnectionException.Type.CONNECTION));
+            }
+        });
     }
 
     /**
      * @return the server ip.
      */
-    public String getIp() {
-        return ip;
+    public String getAddress() {
+        return address;
     }
 
     /**
@@ -105,7 +129,7 @@ public abstract class SimpleClient extends StringNetPort {
      * Closes the connection.
      */
     @Override
-    protected void close0() throws IOException {
+    protected void disconnect0() throws IOException {
         socket.close();
     }
 }
