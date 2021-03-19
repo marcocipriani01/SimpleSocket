@@ -16,8 +16,6 @@
 
 package io.github.marcocipriani01.simplesocket;
 
-import android.util.Log;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -27,7 +25,7 @@ import java.net.Socket;
  * Client Socket for a local LAN Server Socket with event handling.
  *
  * @author marcocipriani01
- * @version 1.1
+ * @version 1.2
  */
 public abstract class SimpleClient extends StringNetPort {
 
@@ -42,30 +40,30 @@ public abstract class SimpleClient extends StringNetPort {
     private volatile PrintWriter out;
 
     /**
-     * Class constructor. Initializes the client without attempting a connection.
-     */
-    public SimpleClient() {
-        super();
-    }
-
-    /**
      * Starts the connection to the client/server.
      */
-    public void connect(String address, int port) throws ConnectionException {
+    public void connect(String address, int port) {
         if (connected)
-            throw new ConnectionException("Already connected!", ConnectionException.Type.ALREADY_CONNECTED);
+            throw new IllegalStateException("Already connected!");
         this.port = port;
         this.address = address;
         handler.post(() -> {
             try {
                 socket = new Socket(this.address, port);
                 out = new PrintWriter(socket.getOutputStream(), true);
-                startReading(socket, new BufferedReader(new InputStreamReader(socket.getInputStream())));
+                final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                new Thread(() -> {
+                    try {
+                        read(socket, reader);
+                    } catch (Exception e) {
+                        onError(e);
+                        if (connected) disconnect();
+                    }
+                }, socket.getInetAddress() + " reader").start();
                 connected = true;
                 onConnected();
             } catch (Exception e) {
-                Log.e(TAG, e.getMessage(), e);
-                onError(new ConnectionException("Cannot connect the client!", e, ConnectionException.Type.CONNECTION));
+                onError(e);
             }
         });
     }
@@ -87,40 +85,39 @@ public abstract class SimpleClient extends StringNetPort {
      * Sends a message to the server.
      *
      * @param msg the message you want to send.
-     * @throws ConnectionException if the client is not connected.
      */
     @Override
-    public void print(String msg) throws ConnectionException {
+    public void print(String msg) {
         ensureConnection();
         handler.post(() -> out.print(msg));
     }
 
     @Override
-    public void println(String msg) throws ConnectionException {
+    public void println(String msg) {
         ensureConnection();
         handler.post(() -> out.println(msg));
     }
 
     @Override
-    public void println(int msg) throws ConnectionException {
+    public void println(int msg) {
         ensureConnection();
         handler.post(() -> out.println(msg));
     }
 
     @Override
-    public void print(int msg) throws ConnectionException {
+    public void print(int msg) {
         ensureConnection();
         handler.post(() -> out.print(msg));
     }
 
     @Override
-    public void println(boolean msg) throws ConnectionException {
+    public void println(boolean msg) {
         ensureConnection();
         handler.post(() -> out.println(msg));
     }
 
     @Override
-    public void print(boolean msg) throws ConnectionException {
+    public void print(boolean msg) {
         ensureConnection();
         handler.post(() -> out.print(msg));
     }
@@ -133,7 +130,7 @@ public abstract class SimpleClient extends StringNetPort {
         try {
             socket.close();
         } catch (Exception e) {
-            Log.e(TAG, e.getMessage(), e);
+            onError(e);
         }
         socket = null;
     }

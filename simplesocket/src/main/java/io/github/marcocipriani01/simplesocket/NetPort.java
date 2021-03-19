@@ -28,12 +28,11 @@ import java.net.Socket;
  *
  * @param <MessageType> the message type.
  * @author marcocipriani01
- * @version 1.1
+ * @version 1.2
  * @see StringNetPort
  */
 public abstract class NetPort<MessageType> {
 
-    protected static final String TAG = "SimpleSocket";
     protected final HandlerThread thread = new HandlerThread("SimpleSocket thread");
     /**
      * Port.
@@ -69,7 +68,7 @@ public abstract class NetPort<MessageType> {
      *
      * @param msg the message to send.
      */
-    public abstract void print(MessageType msg) throws ConnectionException;
+    public abstract void print(MessageType msg);
 
     /**
      * Invoked when a new message arrives from the server / client.
@@ -91,7 +90,7 @@ public abstract class NetPort<MessageType> {
     /**
      * Closes the connection.
      */
-    public void disconnect() throws ConnectionException {
+    public void disconnect() {
         ensureConnection();
         handler.post(() -> {
             connected = false;
@@ -113,8 +112,8 @@ public abstract class NetPort<MessageType> {
         return connected;
     }
 
-    protected final void ensureConnection() throws ConnectionException {
+    protected final void ensureConnection() {
         if (!connected)
-            throw new ConnectionException("Not connected!", ConnectionException.Type.NOT_CONNECTED);
+            throw new IllegalStateException("Not connected!");
     }
 }

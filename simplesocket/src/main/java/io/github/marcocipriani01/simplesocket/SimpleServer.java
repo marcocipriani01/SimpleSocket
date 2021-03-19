@@ -16,8 +16,6 @@
 
 package io.github.marcocipriani01.simplesocket;
 
-import android.util.Log;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -32,7 +30,7 @@ import java.util.Set;
  * Server Socket for a local LAN server with event handling.
  *
  * @author marcocipriani01
- * @version 1.1
+ * @version 1.2
  */
 public abstract class SimpleServer extends StringNetPort {
 
@@ -42,17 +40,10 @@ public abstract class SimpleServer extends StringNetPort {
     protected final HashMap<Socket, PrintWriter> clients = new HashMap<>();
     protected volatile ServerSocket serverSocket;
 
-    /**
-     * Class constructor. Initializes the client without attempting a connection.
-     */
-    public SimpleServer() {
-        super();
-    }
-
-    public void connect(int port) throws ConnectionException {
+    public void connect(int port) {
         this.port = port;
         if (connected)
-            throw new ConnectionException("Already connected!", ConnectionException.Type.ALREADY_CONNECTED);
+            throw new IllegalStateException("Already connected!");
         new Thread(() -> {
             try {
                 serverSocket = new ServerSocket(port);
@@ -69,17 +60,31 @@ public abstract class SimpleServer extends StringNetPort {
                         synchronized (clients) {
                             clients.put(socket, out);
                         }
-                        startReading(socket, new BufferedReader(new InputStreamReader(socket.getInputStream())));
+                        final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                        new Thread(() -> {
+                            try {
+                                read(socket, reader);
+                            } catch (Exception e) {
+                                try {
+                                    socket.close();
+                                } catch (Exception ex) {
+                                    onError(ex);
+                                }
+                                synchronized (clients) {
+                                    clients.remove(socket);
+                                }
+                                onClientRemoved(socket);
+                            }
+                        }, socket.getInetAddress() + " reader").start();
                         onNewClient(socket);
                     } catch (Exception e) {
-                        Log.e(TAG, e.getMessage(), e);
+                        onError(e);
                     }
                 }
             } catch (Exception e) {
-                Log.e(TAG, e.getMessage(), e);
-                onError(new ConnectionException("Cannot start the server!", e, ConnectionException.Type.CONNECTION));
+                onError(e);
             }
-        }, TAG + " connection").start();
+        }, "SimpleServer connection").start();
     }
 
     /**
@@ -88,7 +93,7 @@ public abstract class SimpleServer extends StringNetPort {
      * @param msg the message to send.
      */
     @Override
-    public void println(String msg) throws ConnectionException {
+    public void println(String msg) {
         ensureConnection();
         handler.post(() -> {
             synchronized (clients) {
@@ -101,7 +106,7 @@ public abstract class SimpleServer extends StringNetPort {
     }
 
     @Override
-    public void println(int msg) throws ConnectionException {
+    public void println(int msg) {
         ensureConnection();
         handler.post(() -> {
             synchronized (clients) {
@@ -114,7 +119,7 @@ public abstract class SimpleServer extends StringNetPort {
     }
 
     @Override
-    public void print(int msg) throws ConnectionException {
+    public void print(int msg) {
         ensureConnection();
         handler.post(() -> {
             Collection<PrintWriter> writers = clients.values();
@@ -125,7 +130,7 @@ public abstract class SimpleServer extends StringNetPort {
     }
 
     @Override
-    public void println(boolean msg) throws ConnectionException {
+    public void println(boolean msg) {
         ensureConnection();
         handler.post(() -> {
             synchronized (clients) {
@@ -138,7 +143,7 @@ public abstract class SimpleServer extends StringNetPort {
     }
 
     @Override
-    public void print(boolean msg) throws ConnectionException {
+    public void print(boolean msg) {
         ensureConnection();
         handler.post(() -> {
             synchronized (clients) {
@@ -156,7 +161,7 @@ public abstract class SimpleServer extends StringNetPort {
      * @param msg the message to send.
      */
     @Override
-    public void print(String msg) throws ConnectionException {
+    public void print(String msg) {
         ensureConnection();
         handler.post(() -> {
             synchronized (clients) {
@@ -173,7 +178,7 @@ public abstract class SimpleServer extends StringNetPort {
      *
      * @param msg the message to send.
      */
-    public void println(Socket client, String msg) throws ConnectionException {
+    public void println(Socket client, String msg) {
         ensureConnection();
         final PrintWriter pw;
         synchronized (clients) {
@@ -189,7 +194,7 @@ public abstract class SimpleServer extends StringNetPort {
      *
      * @param msg the message to send.
      */
-    public void print(Socket client, String msg) throws ConnectionException {
+    public void print(Socket client, String msg) {
         ensureConnection();
         final PrintWriter pw;
         synchronized (clients) {
@@ -200,7 +205,7 @@ public abstract class SimpleServer extends StringNetPort {
         handler.post(() -> pw.print(msg));
     }
 
-    public void println(Socket client, int msg) throws ConnectionException {
+    public void println(Socket client, int msg) {
         ensureConnection();
         final PrintWriter pw;
         synchronized (clients) {
@@ -211,7 +216,7 @@ public abstract class SimpleServer extends StringNetPort {
         handler.post(() -> pw.println(msg));
     }
 
-    public void print(Socket client, int msg) throws ConnectionException {
+    public void print(Socket client, int msg) {
         ensureConnection();
         final PrintWriter pw;
         synchronized (clients) {
@@ -222,7 +227,7 @@ public abstract class SimpleServer extends StringNetPort {
         handler.post(() -> pw.print(msg));
     }
 
-    public void println(Socket client, boolean msg) throws ConnectionException {
+    public void println(Socket client, boolean msg) {
         ensureConnection();
         final PrintWriter pw;
         synchronized (clients) {
@@ -233,7 +238,7 @@ public abstract class SimpleServer extends StringNetPort {
         handler.post(() -> pw.println(msg));
     }
 
-    public void print(Socket client, boolean msg) throws ConnectionException {
+    public void print(Socket client, boolean msg) {
         ensureConnection();
         final PrintWriter pw;
         synchronized (clients) {
@@ -242,28 +247,6 @@ public abstract class SimpleServer extends StringNetPort {
         if (pw == null)
             throw new IllegalArgumentException("Not a client!");
         handler.post(() -> pw.print(msg));
-    }
-
-    @Override
-    protected void startReading(Socket from, BufferedReader in) {
-        new Thread(() -> read(from, in), from.toString() + " reader").start();
-    }
-
-    @Override
-    protected void read(Socket from, BufferedReader in) {
-        try {
-            super.read(from, in);
-        } catch (Exception e) {
-            try {
-                from.close();
-            } catch (Exception ex) {
-                Log.e(TAG, e.getMessage(), e);
-            }
-            synchronized (clients) {
-                clients.remove(from);
-            }
-            onClientRemoved(from);
-        }
     }
 
     /**
@@ -277,7 +260,7 @@ public abstract class SimpleServer extends StringNetPort {
                 try {
                     s.close();
                 } catch (Exception e) {
-                    Log.e(TAG, e.getMessage(), e);
+                    onError(e);
                 }
             }
             clients.clear();
@@ -285,7 +268,7 @@ public abstract class SimpleServer extends StringNetPort {
         try {
             serverSocket.close();
         } catch (Exception e) {
-            Log.e(TAG, e.getMessage(), e);
+            onError(e);
         }
         serverSocket = null;
     }
