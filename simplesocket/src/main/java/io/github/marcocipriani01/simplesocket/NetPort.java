@@ -18,7 +18,6 @@ package io.github.marcocipriani01.simplesocket;
 
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -61,6 +60,8 @@ public abstract class NetPort<MessageType> {
         handler = null;
     }
 
+    protected abstract void onConnected();
+
     protected abstract void onError(Exception e);
 
     /**
@@ -93,20 +94,15 @@ public abstract class NetPort<MessageType> {
     public void disconnect() throws ConnectionException {
         ensureConnection();
         handler.post(() -> {
-            try {
-                disconnect0();
-                connected = false;
-            } catch (Exception e) {
-                Log.e(TAG, e.getMessage(), e);
-                onError(new ConnectionException("Cannot disconnect the socket!", e, ConnectionException.Type.UNABLE_TO_DISCONNECT));
-            }
+            connected = false;
+            disconnect0();
         });
     }
 
     /**
      * Closes the connection.
      */
-    protected abstract void disconnect0() throws IOException;
+    protected abstract void disconnect0();
 
     /**
      * Returns the connection state of the current client.

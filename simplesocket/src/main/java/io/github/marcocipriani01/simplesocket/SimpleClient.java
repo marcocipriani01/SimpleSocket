@@ -19,7 +19,6 @@ package io.github.marcocipriani01.simplesocket;
 import android.util.Log;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -53,16 +52,17 @@ public abstract class SimpleClient extends StringNetPort {
      * Starts the connection to the client/server.
      */
     public void connect(String address, int port) throws ConnectionException {
-        this.port = port;
-        this.address = address;
         if (connected)
             throw new ConnectionException("Already connected!", ConnectionException.Type.ALREADY_CONNECTED);
+        this.port = port;
+        this.address = address;
         handler.post(() -> {
             try {
                 socket = new Socket(this.address, port);
                 out = new PrintWriter(socket.getOutputStream(), true);
                 startReading(socket, new BufferedReader(new InputStreamReader(socket.getInputStream())));
                 connected = true;
+                onConnected();
             } catch (Exception e) {
                 Log.e(TAG, e.getMessage(), e);
                 onError(new ConnectionException("Cannot connect the client!", e, ConnectionException.Type.CONNECTION));
@@ -129,7 +129,12 @@ public abstract class SimpleClient extends StringNetPort {
      * Closes the connection.
      */
     @Override
-    protected void disconnect0() throws IOException {
-        socket.close();
+    protected void disconnect0() {
+        try {
+            socket.close();
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage(), e);
+        }
+        socket = null;
     }
 }

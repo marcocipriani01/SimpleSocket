@@ -19,7 +19,6 @@ package io.github.marcocipriani01.simplesocket;
 import android.util.Log;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetAddress;
@@ -58,6 +57,7 @@ public abstract class SimpleServer extends StringNetPort {
             try {
                 serverSocket = new ServerSocket(port);
                 connected = true;
+                onConnected();
                 while (connected) {
                     try {
                         Socket socket = serverSocket.accept();
@@ -175,7 +175,10 @@ public abstract class SimpleServer extends StringNetPort {
      */
     public void println(Socket client, String msg) throws ConnectionException {
         ensureConnection();
-        final PrintWriter pw = clients.get(client);
+        final PrintWriter pw;
+        synchronized (clients) {
+            pw = clients.get(client);
+        }
         if (pw == null)
             throw new IllegalArgumentException("Not a client!");
         handler.post(() -> pw.println(msg));
@@ -188,7 +191,10 @@ public abstract class SimpleServer extends StringNetPort {
      */
     public void print(Socket client, String msg) throws ConnectionException {
         ensureConnection();
-        final PrintWriter pw = clients.get(client);
+        final PrintWriter pw;
+        synchronized (clients) {
+            pw = clients.get(client);
+        }
         if (pw == null)
             throw new IllegalArgumentException("Not a client!");
         handler.post(() -> pw.print(msg));
@@ -196,7 +202,10 @@ public abstract class SimpleServer extends StringNetPort {
 
     public void println(Socket client, int msg) throws ConnectionException {
         ensureConnection();
-        final PrintWriter pw = clients.get(client);
+        final PrintWriter pw;
+        synchronized (clients) {
+            pw = clients.get(client);
+        }
         if (pw == null)
             throw new IllegalArgumentException("Not a client!");
         handler.post(() -> pw.println(msg));
@@ -204,7 +213,10 @@ public abstract class SimpleServer extends StringNetPort {
 
     public void print(Socket client, int msg) throws ConnectionException {
         ensureConnection();
-        final PrintWriter pw = clients.get(client);
+        final PrintWriter pw;
+        synchronized (clients) {
+            pw = clients.get(client);
+        }
         if (pw == null)
             throw new IllegalArgumentException("Not a client!");
         handler.post(() -> pw.print(msg));
@@ -212,7 +224,10 @@ public abstract class SimpleServer extends StringNetPort {
 
     public void println(Socket client, boolean msg) throws ConnectionException {
         ensureConnection();
-        final PrintWriter pw = clients.get(client);
+        final PrintWriter pw;
+        synchronized (clients) {
+            pw = clients.get(client);
+        }
         if (pw == null)
             throw new IllegalArgumentException("Not a client!");
         handler.post(() -> pw.println(msg));
@@ -220,7 +235,10 @@ public abstract class SimpleServer extends StringNetPort {
 
     public void print(Socket client, boolean msg) throws ConnectionException {
         ensureConnection();
-        final PrintWriter pw = clients.get(client);
+        final PrintWriter pw;
+        synchronized (clients) {
+            pw = clients.get(client);
+        }
         if (pw == null)
             throw new IllegalArgumentException("Not a client!");
         handler.post(() -> pw.print(msg));
@@ -252,15 +270,23 @@ public abstract class SimpleServer extends StringNetPort {
      * Closes the connection.
      */
     @Override
-    protected void disconnect0() throws IOException {
+    protected void disconnect0() {
         synchronized (clients) {
             Set<Socket> sockets = clients.keySet();
             for (Socket s : sockets) {
-                s.close();
+                try {
+                    s.close();
+                } catch (Exception e) {
+                    Log.e(TAG, e.getMessage(), e);
+                }
             }
             clients.clear();
         }
-        serverSocket.close();
+        try {
+            serverSocket.close();
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage(), e);
+        }
         serverSocket = null;
     }
 
@@ -277,6 +303,8 @@ public abstract class SimpleServer extends StringNetPort {
     protected abstract void onClientRemoved(Socket client);
 
     public int getClientsCount() {
-        return clients.size();
+        synchronized (clients) {
+            return clients.size();
+        }
     }
 }
