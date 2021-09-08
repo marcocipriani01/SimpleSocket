@@ -2,14 +2,14 @@ apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 31
     buildToolsVersion "30.0.3"
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 30
-        versionCode 1
-        versionName "1.0"
+        targetSdkVersion 31
+        versionCode 2
+        versionName "1.0.1"
     }
 
     buildTypes {
@@ -19,8 +19,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 }
 
@@ -32,7 +32,7 @@ afterEvaluate {
 
                 group = 'io.github.marcocipriani01'
                 artifactId = 'SimpleSocket'
-                version = '1.0.0'
+                version = '1.0.1'
 
                 // Adds javadocs and sources as separate jars.
                 artifact androidJavadocsJar

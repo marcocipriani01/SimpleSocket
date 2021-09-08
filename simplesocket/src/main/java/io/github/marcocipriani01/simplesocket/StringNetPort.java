@@ -29,6 +29,7 @@ import java.net.Socket;
  * @see SimpleServer
  * @see SimpleClient
  */
+@SuppressWarnings("unused")
 public abstract class StringNetPort extends NetPort<String> {
 
     /**

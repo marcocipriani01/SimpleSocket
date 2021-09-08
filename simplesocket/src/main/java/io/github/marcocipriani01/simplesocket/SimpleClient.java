@@ -27,6 +27,7 @@ import java.net.Socket;
  * @author marcocipriani01
  * @version 1.2
  */
+@SuppressWarnings("unused")
 public abstract class SimpleClient extends StringNetPort {
 
     /**

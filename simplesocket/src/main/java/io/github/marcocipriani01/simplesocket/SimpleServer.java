@@ -32,6 +32,7 @@ import java.util.Set;
  * @author marcocipriani01
  * @version 1.2
  */
+@SuppressWarnings("unused")
 public abstract class SimpleServer extends StringNetPort {
 
     /**

@@ -31,6 +31,7 @@ import java.net.Socket;
  * @version 1.2
  * @see StringNetPort
  */
+@SuppressWarnings("unused")
 public abstract class NetPort<MessageType> {
 
     protected final HandlerThread thread = new HandlerThread("SimpleSocket thread");
